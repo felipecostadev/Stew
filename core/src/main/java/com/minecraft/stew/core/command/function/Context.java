@@ -1,0 +1,173 @@
+/*
+ * Copyright 2020 Luiz Carlos Mourão Paes de Carvalho
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+
+package com.minecraft.stew.core.command.function;
+
+import com.minecraft.stew.core.account.Account;
+import com.minecraft.stew.core.command.CommandFramework;
+import com.minecraft.stew.core.command.argument.TypeAdapter;
+import com.minecraft.stew.core.command.exception.CommandException;
+import com.minecraft.stew.core.command.platform.Platform;
+
+import java.lang.reflect.Array;
+import java.util.Arrays;
+
+/**
+ * The context is where all information from the command dispatcher
+ * is stored, such as the sender, arguments and label
+ * @author Luiz Carlos Mourão
+ */
+public interface Context<S> {
+
+    /**
+     * Contains the label sent by the command
+     * @return String
+     */
+    String getLabel();
+
+    /**
+     * The generic value can be either
+     * a Console or Player
+     * @return S
+     */
+    S getSender();
+
+    /**
+     * @return the executor type
+     */
+    Platform getPlatform();
+
+    /**
+     * @return the account of executor
+     */
+    Account getAccount();
+
+    /**
+     * Contains all arguments sent by the command
+     * @return String[] of arguments
+     */
+    String[] getArgs();
+
+
+    /**
+     * @return the number of arguments
+     */
+    default int argsCount() {
+        return getArgs().length;
+    }
+
+    /**
+     * @param index the index of the argument
+     * @return the argument - null if the index is out of bounds
+     */
+    default String getArg(int index) {
+        try {
+            return getArgs()[index];
+        } catch (ArrayIndexOutOfBoundsException e) {
+            return null;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    default <T> T getArg(int index, Class<T> type) {
+        return (T) getCommandFramework().getAdapterMap().get(type).convertNonNull(getArg(index));
+    }
+
+    /**
+     * Gets all args between indexes from and to
+     *
+     * @param from defines the start of the array relative to the arguments, inclusive
+     * @param to   defines the end of the array relative to the arguments, exclusive
+     * @return the arguments array - null if the indexes are out of bounds
+     */
+    default String[] getArgs(int from, int to) {
+        try {
+            return Arrays.copyOfRange(getArgs(), from, to);
+        } catch (ArrayIndexOutOfBoundsException e) {
+            return null;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    default <T> T[] getArgs(int from, int to, Class<T> type) {
+        try {
+            final TypeAdapter<?> adapter = getCommandFramework().getAdapterMap().get(type);
+            final T[] instance = (T[]) Array.newInstance(type,  to - from);
+
+            for (int i = from; i <= to; i++) {
+                instance[i - from] = (T) adapter.convertNonNull(getArg(i));
+            }
+
+            return instance;
+        } catch (ArrayIndexOutOfBoundsException e) {
+            return null;
+        }
+    }
+
+
+    /**
+     * Sends a message to the executor
+     *
+     * @param message the message to be sent
+     */
+    void sendMessage(String message);
+
+    /**
+     * Sends multiple messages to the executor
+     *
+     * @param messages the messages to be sent
+     */
+    void sendMessage(String[] messages);
+
+    /**
+     * Sends a message formatting it with the String#format() method
+     *
+     * @param message the message to be sent
+     * @param objects the objects to be inserted
+     */
+    default void sendMessage(String message, Object... objects) {
+        sendMessage(String.format(message, objects));
+    }
+
+
+    /**
+     * Tests whether the executor has a permission
+     *
+     * @param permission the permission to be tested
+     * @param silent     whether a exception should be thrown
+     * @return the test result if silent
+     */
+    boolean testPermission(String permission, boolean silent) throws CommandException;
+
+    /**
+     * Tests whether the executor is a target
+     *
+     * @param platform the target to be tested
+     * @param silent whether a exception should be thrown
+     * @return the test result if silent
+     */
+    boolean testPlatform(Platform platform, boolean silent) throws CommandException;
+
+    /**
+     * @return this command's frame
+     */
+    CommandFramework<?, ?, ?> getCommandFramework();
+
+    /**
+     * @return this command's holder
+     */
+    CommandHolder<?, ?> getCommandHolder();
+}

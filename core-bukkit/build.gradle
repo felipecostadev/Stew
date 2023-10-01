@@ -1,0 +1,37 @@
+plugins {
+    id 'java'
+    id 'net.minecrell.plugin-yml.bukkit' version '0.3.0'
+}
+
+group 'com.minecraft.stew.core.bukkit'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation project(':core')
+
+    compileOnly 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
+
+    compileOnly files('../libs/windspigot.jar')
+}
+
+bukkit {
+    main = 'com.minecraft.stew.core.bukkit.BukkitGame'
+    name = 'stew'
+    author = 'Unknown'
+    version = '1.0'
+    website = 'www.stewmc.com'
+}
+
+jar {
+    duplicatesStrategy = 'include' // Ou 'exclude' ou outra estratégia de sua escolha
+
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
+compileJava.options.encoding('UTF-8')
